@@ -59,6 +59,18 @@ function ContactForm({
       return;
     }
 
+    if (!hCaptchaToken) {
+      toast("Token hCAPTCHA mancante, riprova a completare il CAPTCHA.");
+      setIsverified(false);
+      return;
+    }
+
+    console.log('Submitting form with hCaptcha token:', {
+      hasToken: !!hCaptchaToken,
+      tokenLength: hCaptchaToken?.length,
+      tokenPreview: hCaptchaToken ? `${hCaptchaToken.substring(0, 20)}...` : 'none'
+    });
+
     fetch("/api/contactform", {
       method: "POST",
       headers: {
@@ -74,13 +86,25 @@ function ContactForm({
         "h-captcha-response": hCaptchaToken,
       }),
     })
-    .then((response) => response.json())
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('Form submission error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data
+        });
+        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      return data;
+    })
     .then((data) => {
       toast(
         "Richiesta di contatto registrata con successo, a breve verrà contattato da uno dei nostri operatori"
       );
     }).catch((error) => {
-      toast("Si è verificato un errore durante l'invio della richiesta di contatto. Per favore, riprova più tardi.");
+      console.error('Form submission failed:', error);
+      toast(`Errore: ${error.message || 'Si è verificato un errore durante l\'invio della richiesta di contatto. Per favore, riprova più tardi.'}`);
     })
     .finally(() => {
       setFormData({

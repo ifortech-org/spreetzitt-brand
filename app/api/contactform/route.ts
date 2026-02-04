@@ -112,6 +112,16 @@ export async function POST(request: Request) {
     }
 
     // Verifica hCaptcha
+    console.log('hCaptcha verification attempt:', {
+      hasToken: !!hCaptchaToken,
+      tokenLength: hCaptchaToken?.length,
+      tokenPreview: hCaptchaToken ? `${hCaptchaToken.substring(0, 20)}...` : 'none',
+      secret: hCaptchaSecret ? `${hCaptchaSecret.substring(0, 4)}...` : 'missing',
+      userAgent: request.headers.get('user-agent'),
+      origin: request.headers.get('origin'),
+      referer: request.headers.get('referer')
+    });
+
     const verifyResponse = await fetch("https://hcaptcha.com/siteverify", {
       method: "POST",
       headers: {
@@ -120,16 +130,27 @@ export async function POST(request: Request) {
       body: new URLSearchParams({
         secret: hCaptchaSecret,
         response: hCaptchaToken,
+        remoteip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
       }),
     });
 
+    console.log('hCaptcha API response status:', verifyResponse.status);
+
     if (!verifyResponse.ok) {
+      console.error('hCaptcha API error:', verifyResponse.statusText);
       return new Response("hCaptcha verification failed", { status: 400 });
     }
 
     const hCaptchaResult = await verifyResponse.json() as HCaptchaVerifyResponse;
+    console.log('hCaptcha result:', {
+      success: hCaptchaResult.success,
+      errorCodes: hCaptchaResult["error-codes"],
+      hostname: hCaptchaResult.hostname
+    });
+
     if (!hCaptchaResult.success) {
-      return new Response("Invalid hCaptcha", { status: 400 });
+      console.error('hCaptcha validation failed:', hCaptchaResult["error-codes"]);
+      return new Response(`Invalid hCaptcha: ${JSON.stringify(hCaptchaResult["error-codes"])}`, { status: 400 });
     }
 
     if ( !email || !name || !surname || !business_name || !subject || !description ) {
