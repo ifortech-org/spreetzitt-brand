@@ -94,6 +94,15 @@ function ContactForm({
           statusText: response.statusText,
           data
         });
+        
+        // Se il problema è hCaptcha, resetta e forza una nuova verifica
+        if (data.error && data.error.includes('hCaptcha')) {
+          console.log('hCaptcha error detected, resetting captcha');
+          captchaRef.current?.resetCaptcha();
+          setIsverified(false);
+          setHCaptchaToken(null);
+        }
+        
         throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
       }
       return data;
@@ -122,6 +131,18 @@ function ContactForm({
   }
 
   async function handleCaptchaSubmission(token: string | null) {
+    console.log('New hCaptcha token received:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+    });
+
+    if (!token) {
+      setIsverified(false);
+      setHCaptchaToken(null);
+      return;
+    }
+
     // Server function to verify captcha
     const request = fetch("/api/captcha", {
       method: "POST",
@@ -137,9 +158,11 @@ function ContactForm({
     if (response.ok) {
       setIsverified(true);
       setHCaptchaToken(token);
+      console.log('hCaptcha verified and token saved');
     } else {
       setIsverified(false);
       setHCaptchaToken(null);
+      console.log('hCaptcha verification failed');
     }
   }
 

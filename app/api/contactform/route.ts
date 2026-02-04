@@ -103,12 +103,12 @@ export async function POST(request: Request) {
 
     // Validazione hCaptcha
     if (!hCaptchaToken) {
-      return new Response("Missing hCaptcha token", { status: 400 });
+      return NextResponse.json({ success: false, error: "Missing hCaptcha token" }, { status: 400 });
     }
 
     const hCaptchaSecret = process.env.HCAPTCHA_SECRET_KEY;
     if (!hCaptchaSecret) {
-      return new Response("hCaptcha configuration missing", { status: 500 });
+      return NextResponse.json({ success: false, error: "hCaptcha configuration missing" }, { status: 500 });
     }
 
     // Verifica hCaptcha
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
 
     if (!verifyResponse.ok) {
       console.error('hCaptcha API error:', verifyResponse.statusText);
-      return new Response("hCaptcha verification failed", { status: 400 });
+      return NextResponse.json({ success: false, error: "hCaptcha verification failed" }, { status: 400 });
     }
 
     const hCaptchaResult = await verifyResponse.json() as HCaptchaVerifyResponse;
@@ -150,11 +150,15 @@ export async function POST(request: Request) {
 
     if (!hCaptchaResult.success) {
       console.error('hCaptcha validation failed:', hCaptchaResult["error-codes"]);
-      return new Response(`Invalid hCaptcha: ${JSON.stringify(hCaptchaResult["error-codes"])}`, { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        error: "Invalid hCaptcha",
+        details: hCaptchaResult["error-codes"]
+      }, { status: 400 });
     }
 
     if ( !email || !name || !surname || !business_name || !subject || !description ) {
-      return new Response("Missing required fields", { status: 400 });
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
     if (!mailSenderAccount.user || !mailSenderAccount.pass || !mailSenderAccount.email) {
@@ -165,7 +169,7 @@ export async function POST(request: Request) {
         // Log solo i primi e ultimi caratteri della password per debug
         passPreview: mailSenderAccount.pass ? `${mailSenderAccount.pass.substring(0, 2)}...${mailSenderAccount.pass.slice(-2)}` : "undefined"
       });
-      return new Response("Email configuration missing", { status: 500 });
+      return NextResponse.json({ success: false, error: "Email configuration missing" }, { status: 500 });
     }
 
     const transporter = nodemailer.createTransport({
