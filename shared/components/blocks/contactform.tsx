@@ -21,9 +21,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "../ui/textarea";
 import { useRef, useState } from "react";
-import ReCAPTCHA from "react-google-recaptcha";
 import { toast } from "sonner";
 import { PAGE_QUERYResult } from "@/sanity.types";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 type ContactFormProps = Extract<
   NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number],
@@ -38,9 +38,10 @@ function ContactForm({
 }: ContactFormProps) {
   let imageUrl =
     side_image && side_image.asset?._id ? urlFor(side_image).url() : "";
-  let captchaRef = useRef<ReCAPTCHA>(null);
+  let captchaRef = useRef<HCaptcha>(null);
 
   let [isVerified, setIsverified] = useState(false);
+  let [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   let [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -54,7 +55,7 @@ function ContactForm({
     e.preventDefault();
 
     if (!isVerified) {
-      toast("Verifica reCAPTCHA fallita, Per favore, completa il reCAPTCHA.");
+      toast("Verifica hCAPTCHA fallita, Per favore, completa il hCAPTCHA.");
       return;
     }
 
@@ -70,14 +71,30 @@ function ContactForm({
         business_name: formData.business_name,
         request: formData.request,
         description: formData.description,
+        "h-captcha-response": hCaptchaToken,
       }),
     })
-      .then((response) => response.json())
-      .then((data) => {
-        toast(
-          "Richiesta di contatto registrata con successo, a breve verrà contattato da uno dei nostri operatori"
-        );
+    .then((response) => response.json())
+    .then((data) => {
+      toast(
+        "Richiesta di contatto registrata con successo, a breve verrà contattato da uno dei nostri operatori"
+      );
+    }).catch((error) => {
+      toast("Si è verificato un errore durante l'invio della richiesta di contatto. Per favore, riprova più tardi.");
+    })
+    .finally(() => {
+      setFormData({
+        email: "",
+        name: "",
+        surname: "",
+        business_name: "",
+        request: "",
+        description: "",
       });
+      captchaRef.current?.resetCaptcha();
+      setIsverified(false);
+      setHCaptchaToken(null);
+    });
   }
 
   async function handleCaptchaSubmission(token: string | null) {
@@ -88,15 +105,17 @@ function ContactForm({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        token: token,
+        "h-captcha-response": token,
       }),
     });
 
     const response = await request;
     if (response.ok) {
       setIsverified(true);
+      setHCaptchaToken(token);
     } else {
       setIsverified(false);
+      setHCaptchaToken(null);
     }
   }
 
@@ -190,22 +209,31 @@ function ContactForm({
                 />
               </div>
               <div>
-                <ReCAPTCHA
+                <HCaptcha
                   ref={captchaRef}
-                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                  onChange={handleCaptchaSubmission}
+                  sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY!}
+                  onVerify={handleCaptchaSubmission}
+                  onExpire={() => {
+                    setIsverified(false);
+                    setHCaptchaToken(null);
+                  }}
+                  onError={() => {
+                    setIsverified(false);
+                    setHCaptchaToken(null);
+                  }}
                 />
                 <p className="text-xs my-2">
                   Cliccando "Invia" si dichiara di aver preso visione
                   dell’informativa per il trattamento dei dati personali.
                 </p>
               </div>
-
               <Button
                 type="submit"
                 size="sm"
                 className="px-3"
-                onClick={handleSubmit}>
+                onClick={handleSubmit}
+                disabled={!isVerified}
+              >
                 Invia
               </Button>
             </div>
