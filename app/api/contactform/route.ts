@@ -157,6 +157,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    // Validazione dei campi obbligatori
     if ( !email || !name || !surname || !business_name || !subject || !description ) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
