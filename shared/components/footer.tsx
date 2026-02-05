@@ -1,7 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import LogoDynamic from "@/shared/components/logo-dynamic";
-// import { usePathname } from "next/navigation";
-import { headers } from "next/headers";
+import { usePathname } from "next/navigation";
 
 const navItems = [
   {
@@ -21,13 +22,9 @@ const navItems = [
   },
 ];
 
-export default async function Footer() {
-  // Recupera il pathname lato client, ma essendo un componente lato server non è necessario
-  // const pathname = usePathname() || "/";
-
-  // Recupera il pathname lato server dal pathname
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || "/";
+export default function Footer() {
+  // Recupera il pathname lato client per reagire ai cambi di navigazione
+  const pathname = usePathname() || "/";
 
   const isEn = pathname === "/en" || pathname.startsWith("/en/");
   

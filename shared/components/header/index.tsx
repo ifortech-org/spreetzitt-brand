@@ -1,11 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import LogoDynamic from "@/shared/components/logo-dynamic";
 import MobileNav from "@/shared/components/header/mobile-nav";
 import DesktopNav from "@/shared/components/header/desktop-nav";
 import { Suspense } from "react";
 import LanguageSwitcher from "./language-switcher";
-// import { usePathname } from "next/navigation";
-import { headers } from "next/headers";
+import { usePathname } from "next/navigation";
 
 const baseNavItems = [
   {
@@ -34,13 +35,9 @@ function withEnPrefix(pathname: string) {
   return `/en${pathname}`;
 }
 
-export default async function Header() {
-  // Recupera il pathname lato client, ma essendo un componente lato server non è necessario
-  // const pathname = usePathname() || "/";
-
-  // Recupera il pathname lato server dal pathname
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || "/";
+export default function Header() {
+  // Recupera il pathname lato client per reagire ai cambi di navigazione
+  const pathname = usePathname() || "/";
 
   const isEn = pathname === "/en" || pathname.startsWith("/en/");
   
