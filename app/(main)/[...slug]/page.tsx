@@ -17,8 +17,8 @@ export async function generateStaticParams() {
 // Permetti di generare pagine non presenti in generateStaticParams on-demand
 export const dynamicParams = true;
 
-// Forza rendering dinamico per pagine non pre-generate
-export const dynamic = 'auto';
+// Forza rendering dinamico temporaneamente per debug
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string[] }>;

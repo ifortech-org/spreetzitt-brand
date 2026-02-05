@@ -11,40 +11,39 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Test diretto con la query base per debug
-    const directQuery = `*[_type == "page" && slug.current == $slug][0]{_id, meta_title, slug}`;
-    const directResult = await client.fetch(directQuery, { slug });
+    // Test con query molto semplice prima
+    const simpleQuery = `*[_type == "page" && slug.current == $slug][0]{_id, meta_title, slug, _type}`;
+    const simpleResult = await client.fetch(simpleQuery, { slug });
     
-    // Query normale tramite fetchSanityPageBySlug
-    const page = await fetchSanityPageBySlug({ slug });
+    console.log('Simple query result:', simpleResult);
     
-    // Query per vedere tutte le pagine che iniziano con "en/"
-    const allEnPages = await client.fetch(`*[_type == "page" && slug.current match "en/*"]{slug.current, _id, meta_title}`);
-    
-    console.log('Direct query result:', directResult);
-    console.log('FetchSanityPageBySlug result:', !!page);
-    console.log('All en/ pages:', allEnPages);
+    // Solo se la query semplice funziona, prova quella complessa
+    let complexResult = null;
+    if (simpleResult) {
+      try {
+        complexResult = await fetchSanityPageBySlug({ slug });
+      } catch (complexError) {
+        console.error('Complex query error:', complexError);
+      }
+    }
     
     return NextResponse.json({
-      found: !!page,
+      found: !!simpleResult,
       slug: slug,
-      metaTitle: page?.meta_title,
-      directQuery: {
-        found: !!directResult,
-        id: directResult?._id,
-        title: directResult?.meta_title
+      simple: {
+        found: !!simpleResult,
+        id: simpleResult?._id,
+        title: simpleResult?.meta_title
       },
-      allEnPages: allEnPages,
-      debug: {
-        dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-        projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-        apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION,
+      complex: {
+        found: !!complexResult,
+        error: complexResult ? null : 'Query failed'
       },
       timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    console.error('Sanity query error:', error);
+    console.error('Query error:', error);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Unknown error',
       slug: slug,
