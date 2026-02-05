@@ -45,7 +45,6 @@ function ContactForm({
     side_image && side_image.asset?._id ? urlFor(side_image).url() : "";
   let captchaRef = useRef<HCaptcha>(null);
 
-  let [isVerified, setIsverified] = useState(false);
   let [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   let [formData, setFormData] = useState({
     email: "",
@@ -59,14 +58,8 @@ function ContactForm({
   function handleSubmit(e: any) {
     e.preventDefault();
 
-    if (!isVerified) {
-      toast(isEn ? "hCAPTCHA verification failed, please complete the hCAPTCHA." : "Verifica hCAPTCHA fallita, Per favore, completa il hCAPTCHA.");
-      return;
-    }
-
     if (!hCaptchaToken) {
-      toast(isEn ? "Missing hCAPTCHA token, please try completing the CAPTCHA again." : "Token hCAPTCHA mancante, riprova a completare il CAPTCHA.");
-      setIsverified(false);
+      toast(isEn ? "hCAPTCHA verification failed, please complete the hCAPTCHA." : "Verifica hCAPTCHA fallita, Per favore, completa il hCAPTCHA.");
       return;
     }
 
@@ -104,7 +97,6 @@ function ContactForm({
         if (data.error && (data.error.includes('hCaptcha') || data.error.includes('captcha'))) {
           console.log('Captcha error detected, resetting captcha');
           captchaRef.current?.resetCaptcha();
-          setIsverified(false);
           setHCaptchaToken(null);
         }
         
@@ -132,7 +124,6 @@ function ContactForm({
         description: "",
       });
       captchaRef.current?.resetCaptcha();
-      setIsverified(false);
       setHCaptchaToken(null);
     });
   }
@@ -144,13 +135,13 @@ function ContactForm({
       tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
     });
 
-    if (token) {
-      setIsverified(true);
+    // Validazione robusta del token hCAPTCHA
+    if (token && typeof token === 'string' && token.length > 20) {
       setHCaptchaToken(token);
       console.log('hCaptcha token saved, ready for submission');
     } else {
-      setIsverified(false);
       setHCaptchaToken(null);
+      console.log('Invalid or missing hCaptcha token');
     }
   }
 
@@ -249,11 +240,9 @@ function ContactForm({
                   sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY!}
                   onVerify={handleCaptchaSubmission}
                   onExpire={() => {
-                    setIsverified(false);
                     setHCaptchaToken(null);
                   }}
                   onError={() => {
-                    setIsverified(false);
                     setHCaptchaToken(null);
                   }}
                 />
@@ -268,7 +257,7 @@ function ContactForm({
                 size="sm"
                 className="px-3"
                 onClick={handleSubmit}
-                disabled={!isVerified}
+                disabled={!hCaptchaToken}
               >
                 {isEn ? "Send" : "Invia"}
               </Button>
