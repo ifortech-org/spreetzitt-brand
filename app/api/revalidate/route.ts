@@ -16,18 +16,15 @@ export async function POST(request: NextRequest) {
     const revalidatedPaths: string[] = [];
     
     if (_type === 'page' && slug?.current) {
-      // Rivalidate la pagina specifica
-      const pagePaths = [`/${slug.current}`, `/en/${slug.current}`];
-      pagePaths.forEach(path => {
-        revalidatePath(path);
-        revalidatedPaths.push(path);
-      });
+      // Per slug multi-segmento come "en/blog", rivalidate il path corretto
+      const pagePath = `/${slug.current}`;
+      revalidatePath(pagePath);
+      revalidatedPaths.push(pagePath);
       
-      // Se è la home page, rivalidate anche le root paths
-      if (slug.current === 'home' || slug.current === 'homepage') {
-        revalidatePath('/');
+      // Gestione speciale per la homepage inglese
+      if (slug.current === 'en') {
         revalidatePath('/en');
-        revalidatedPaths.push('/', '/en');
+        revalidatedPaths.push('/en');
       }
       
       console.log(`Revalidated page: ${slug.current}`);
