@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
       console.log(`Revalidated global content: ${_type}`);
     }
 
-    return NextResponse.json({ 
+    // Forza purge cache Vercel se disponibile
+    const response = NextResponse.json({ 
       message: 'Revalidated successfully',
       revalidated: true,
       timestamp: new Date().toISOString(),
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
       type: _type,
       id: _id
     });
+
+    // Headers per forzare no-cache su questo endpoint
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
     
   } catch (error) {
     console.error('Revalidation error:', error);

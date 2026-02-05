@@ -1,0 +1,27 @@
+{
+  "functions": {
+    "app/api/revalidate/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/revalidate",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      "headers": [
+        {
+          "key": "Cache-Control", 
+          "value": "public, max-age=0, s-maxage=31536000, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
