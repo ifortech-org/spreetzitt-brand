@@ -40,7 +40,7 @@ export default async function Footer() {
       <div className="dark:bg-background p-5 xl:p-5 dark:text-gray-300">
         <Link
           className="block w-[6.25rem] mx-auto"
-          href="/"
+          href={isEn ? "/en" : "/"}
           aria-label="Home page">
           <LogoDynamic />
         </Link>
@@ -48,7 +48,7 @@ export default async function Footer() {
           {navItems.map((navItem) => (
             <Link
               key={navItem.label}
-              href={navItem.href}
+              href={isEn ? `/en${navItem.href}` : navItem.href}
               target={navItem.target ? "_blank" : undefined}
               rel={navItem.target ? "noopener noreferrer" : undefined}
               className="transition-colors hover:text-foreground/80 text-foreground/60 text-sm">
