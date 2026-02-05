@@ -16,18 +16,12 @@ export async function POST(request: NextRequest) {
     const revalidatedPaths: string[] = [];
     
     if (_type === 'page' && slug?.current) {
-      // Per slug multi-segmento come "en/blog", rivalidate il path corretto
+      // Per slug multi-segmento come "en/ticketing-intelligente", rivalidate il path corretto
       const pagePath = `/${slug.current}`;
       revalidatePath(pagePath);
       revalidatedPaths.push(pagePath);
       
-      // Gestione speciale per la homepage inglese
-      if (slug.current === 'en') {
-        revalidatePath('/en');
-        revalidatedPaths.push('/en');
-      }
-      
-      console.log(`Revalidated page: ${slug.current}`);
+      console.log(`Revalidated page: ${slug.current} -> ${pagePath}`);
     }
     
     if (_type === 'post' && slug?.current) {
@@ -55,7 +49,7 @@ export async function POST(request: NextRequest) {
       console.log(`Revalidated global content: ${_type}`);
     }
 
-    // Forza purge cache Vercel se disponibile
+    // Response con headers ottimizzati per ISR
     const response = NextResponse.json({ 
       message: 'Revalidated successfully',
       revalidated: true,
