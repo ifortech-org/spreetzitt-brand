@@ -24,6 +24,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { PAGE_QUERYResult } from "@/sanity.types";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
+import { usePathname } from "next/navigation";
 
 type ContactFormProps = Extract<
   NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number],
@@ -36,6 +37,10 @@ function ContactForm({
   button_text,
   side_image,
 }: ContactFormProps) {
+  // Recupera il pathname lato client e determina la lingua
+  const pathname = usePathname() || "/";
+  const isEn = pathname === "/en" || pathname.startsWith("/en/");
+
   let imageUrl =
     side_image && side_image.asset?._id ? urlFor(side_image).url() : "";
   let captchaRef = useRef<HCaptcha>(null);
@@ -55,12 +60,12 @@ function ContactForm({
     e.preventDefault();
 
     if (!isVerified) {
-      toast("Verifica hCAPTCHA fallita, Per favore, completa il hCAPTCHA.");
+      toast(isEn ? "hCAPTCHA verification failed, please complete the hCAPTCHA." : "Verifica hCAPTCHA fallita, Per favore, completa il hCAPTCHA.");
       return;
     }
 
     if (!hCaptchaToken) {
-      toast("Token hCAPTCHA mancante, riprova a completare il CAPTCHA.");
+      toast(isEn ? "Missing hCAPTCHA token, please try completing the CAPTCHA again." : "Token hCAPTCHA mancante, riprova a completare il CAPTCHA.");
       setIsverified(false);
       return;
     }
@@ -109,11 +114,13 @@ function ContactForm({
     })
     .then((data) => {
       toast(
-        "Richiesta di contatto registrata con successo, a breve verrà contattato da uno dei nostri operatori"
+        isEn
+          ? "Contact request successfully registered, you will be contacted shortly by one of our operators"
+          : "Richiesta di contatto registrata con successo, a breve verrà contattato da uno dei nostri operatori"
       );
     }).catch((error) => {
       console.error('Form submission failed:', error);
-      toast(`Errore: ${error.message || 'Si è verificato un errore durante l\'invio della richiesta di contatto. Per favore, riprova più tardi.'}`);
+      toast(isEn ? `Error: ${error.message || 'An error occurred while submitting the contact request. Please try again later.'}` : `Errore: ${error.message || 'Si è verificato un errore durante l\'invio della richiesta di contatto. Per favore, riprova più tardi.'}`);
     })
     .finally(() => {
       setFormData({
@@ -186,7 +193,7 @@ function ContactForm({
 
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Contattaci</DialogTitle>
+              <DialogTitle>{isEn ? "Contact Us" : "Contattaci"}</DialogTitle>
               <DialogDescription></DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-2">
@@ -202,7 +209,7 @@ function ContactForm({
                 />
               </div>
               <div>
-                <Label htmlFor="name">Nome</Label>
+                <Label htmlFor="name">{isEn ? "First Name" : "Nome"}</Label>
                 <Input
                   id="name"
                   type="text"
@@ -213,7 +220,7 @@ function ContactForm({
                 />
               </div>
               <div>
-                <Label htmlFor="surname">Cognome</Label>
+                <Label htmlFor="surname">{isEn ? "Last Name" : "Cognome"}</Label>
                 <Input
                   id="surname"
                   type="text"
@@ -224,7 +231,7 @@ function ContactForm({
                 />
               </div>
               <div>
-                <Label htmlFor="business_name">Azienda</Label>
+                <Label htmlFor="business_name">{isEn ? "Business Name" : "Azienda"}</Label>
                 <Input
                   id="business_name"
                   type="text"
@@ -235,7 +242,7 @@ function ContactForm({
                 />
               </div>
               <div>
-                <Label htmlFor="request">Richiesta</Label>
+                <Label htmlFor="request">{isEn ? "Request" : "Richiesta"}</Label>
                 <Input
                   id="request"
                   type="text"
@@ -246,7 +253,7 @@ function ContactForm({
                 />
               </div>
               <div>
-                <Label htmlFor="description">Descrizione</Label>
+                <Label htmlFor="description">{isEn ? "Description" : "Descrizione"}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -270,8 +277,9 @@ function ContactForm({
                   }}
                 />
                 <p className="text-xs my-2">
-                  Cliccando "Invia" si dichiara di aver preso visione
-                  dell’informativa per il trattamento dei dati personali.
+                  {isEn
+                    ? 'By clicking "Send" you acknowledge that you have read the privacy policy regarding the processing of personal data.'
+                    : 'Cliccando "Invia" si dichiara di aver preso visione dell’informativa per il trattamento dei dati personali.'}
                 </p>
               </div>
               <Button
@@ -281,13 +289,13 @@ function ContactForm({
                 onClick={handleSubmit}
                 disabled={!isVerified}
               >
-                Invia
+                {isEn ? "Send" : "Invia"}
               </Button>
             </div>
             <DialogFooter className="sm:justify-end">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
-                  Close
+                  {isEn ? "Close" : "Chiudi"}
                 </Button>
               </DialogClose>
             </DialogFooter>

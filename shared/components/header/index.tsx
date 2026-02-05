@@ -2,31 +2,61 @@ import Link from "next/link";
 import LogoDynamic from "@/shared/components/logo-dynamic";
 import MobileNav from "@/shared/components/header/mobile-nav";
 import DesktopNav from "@/shared/components/header/desktop-nav";
+import { Suspense } from "react";
+import LanguageSwitcher from "./language-switcher";
+// import { usePathname } from "next/navigation";
+import { headers } from "next/headers";
 
-const navItems = [
+const baseNavItems = [
   {
-    label: "Home",
+    key: "Home",
     href: "/",
     target: false,
+    label: {it:"Home", en:"Home"}
   },
   {
-    label: "Blog",
+    key: "Blog",
     href: "/blog",
     target: false,
+    label: {it:"Blog", en:"Blog"}
   },
   {
-    label: "About",
+    key: "About",
     href: "/about",
     target: false,
+    label: {it:"About", en:"About"}
   },
 ];
 
-export default function Header() {
+function withEnPrefix(pathname: string) {
+  if (pathname === "/") return "/en/";
+  if (pathname.startsWith("/en/") || pathname === "/en") return pathname;
+  return `/en${pathname}`;
+}
+
+export default async function Header() {
+  // Recupera il pathname lato client, ma essendo un componente lato server non è necessario
+  // const pathname = usePathname() || "/";
+
+  // Recupera il pathname lato server dal pathname
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || "/";
+
+  const isEn = pathname === "/en" || pathname.startsWith("/en/");
+  
+  const navItems = baseNavItems.map((item) => ({
+    key: item.key,
+    target: item.target,
+    href: item.target ? item.href : isEn ? withEnPrefix(item.href) : item.href,
+    label: isEn ? item.label.en : item.label.it,
+  }));
+  const logoHref = isEn ? "/en/" : "/";
+
   return (
     <header className="sticky top-0 w-full border-border/40 bg-background/95 z-50">
       <div className="container flex items-center justify-between h-14">
         <Link
-          href="/"
+          href={logoHref}
           aria-label="Home page"
           className="flex items-center h-14 min-w-[100px] max-w-[180px] xl:max-w-[220px] overflow-visible">
           <LogoDynamic
@@ -41,8 +71,14 @@ export default function Header() {
         </Link>
         <div className="hidden xl:flex gap-7 items-center justify-between">
           <DesktopNav navItems={navItems} />
+          <Suspense fallback={<div className="h-8 w-10" />}>
+            <LanguageSwitcher />
+          </Suspense>
         </div>
         <div className="flex items-center xl:hidden">
+          <Suspense fallback={<div className="h-8 w-10" />}>
+            <LanguageSwitcher />
+          </Suspense>
           <MobileNav navItems={navItems} />
         </div>
       </div>
