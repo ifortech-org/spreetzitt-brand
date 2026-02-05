@@ -16,8 +16,14 @@ export async function POST(request: NextRequest) {
     const revalidatedPaths: string[] = [];
     
     if (_type === 'page' && slug?.current) {
-      // Per slug multi-segmento come "en/ticketing-intelligente", rivalidate il path corretto
-      const pagePath = `/${slug.current}`;
+      // Gestione speciale per la homepage: "index" -> "/"
+      let pagePath;
+      if (slug.current === 'index') {
+        pagePath = '/';
+      } else {
+        pagePath = `/${slug.current}`;
+      }
+      
       revalidatePath(pagePath);
       revalidatedPaths.push(pagePath);
       
