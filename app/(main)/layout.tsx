@@ -16,7 +16,7 @@ export default async function MainLayout({
     <>
       <Header />
       <main>{children}</main>
-      <SanityLive />
+      {process.env.NODE_ENV === 'development' && <SanityLive />}
       {(await draftMode()).isEnabled && (
         <>
           <DisableDraftMode />
