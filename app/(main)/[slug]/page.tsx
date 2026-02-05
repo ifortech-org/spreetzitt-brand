@@ -14,6 +14,9 @@ export async function generateStaticParams() {
   }));
 }
 
+// Permetti di generare pagine non presenti in generateStaticParams on-demand
+export const dynamicParams = true;
+
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;
 }) {
