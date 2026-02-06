@@ -74,8 +74,8 @@ async function getEmailTemplate(lang: string) {
   }
   // Fallback statico se non trova nulla
   return {
-    subject: "Riepilogo richiesta di contatto - iFortech",
-    body: `<div><h1>iFortech</h1><div><p>Gentile {{name}} {{surname}}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> {{subject}} <br><strong>Messaggio:</strong> {{description}} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di iFortech</p></div></div>`,
+    subject: "Riepilogo richiesta di contatto - Spreetzit",
+    body: `<div><h1>Spreetzit</h1><div><p>Gentile {{name}} {{surname}}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> {{subject}} <br><strong>Messaggio:</strong> {{description}} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di Spreetzit</p></div></div>`,
     description: "Variabili disponibili: {{name}}, {{surname}}, {{subject}}, {{description}}. Usare le doppie parentesi graffe per inserire i dati dinamici.",
   };
 }
@@ -190,7 +190,7 @@ export async function POST(request: Request) {
     const mailData = {
       from: mailSenderAccount.email,
       to: mailSenderAccount.email,
-      subject: `IFORTECH - Richiesta di contatto`,
+      subject: `SPREETZIT - Richiesta di contatto`,
       html: `
         <div>
           <h1>Nuova richiesta di contatto</h1>
