@@ -73,11 +73,17 @@ async function getEmailTemplate(lang: string) {
     };
   }
   // Fallback statico se non trova nulla
-  return {
-    subject: "Riepilogo richiesta di contatto - Spreetzit",
-    body: `<div><h1>Spreetzit</h1><div><p>Gentile {{name}} {{surname}}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> {{subject}} <br><strong>Messaggio:</strong> {{description}} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di Spreetzit</p></div></div>`,
-    description: "Variabili disponibili: {{name}}, {{surname}}, {{subject}}, {{description}}. Usare le doppie parentesi graffe per inserire i dati dinamici.",
-  };
+  return lang == "en" 
+    ? {
+      subject: "Contact request summary - Spreetzit",
+      body: `<div><h1>Spreetzit</h1><div><p>Dear {{name}} {{surname}}, <br>Thank you for contacting us. Below is a summary of your request: <br><br><strong>Subject:</strong> {{subject}} <br><strong>Message:</strong> {{description}} <br><br>We will get back to you as soon as possible. <br><br>Best regards, <br><br>The Spreetzit Team</p></div></div>`,
+      description: "Available variables: {{name}}, {{surname}}, {{subject}}, {{description}}. Use double curly braces to insert dynamic data.",
+    }
+    : {
+      subject: "Riepilogo richiesta di contatto - Spreetzit",
+      body: `<div><h1>Spreetzit</h1><div><p>Gentile {{name}} {{surname}}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> {{subject}} <br><strong>Messaggio:</strong> {{description}} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di Spreetzit</p></div></div>`,
+      description: "Variabili disponibili: {{name}}, {{surname}}, {{subject}}, {{description}}. Usare le doppie parentesi graffe per inserire i dati dinamici.",
+    };
 }
 
 const mailSenderAccount = {

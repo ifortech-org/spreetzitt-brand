@@ -81,6 +81,7 @@ function ContactForm({
         business_name: formData.business_name,
         request: formData.request,
         description: formData.description,
+        lang: isEn ? "en" : "it",
         "h-captcha-response": hCaptchaToken,
       }),
     })
