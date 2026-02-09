@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import * as nodemailer from "nodemailer";
-import { marked } from "marked";
 
 type HCaptchaVerifyResponse = {
   success: boolean;
@@ -25,59 +24,11 @@ function escapeHtml(str: string) {
     };
     return entity[s] || s;
   });
-}
+};
 
-// Funzione di compilazione template: sostituisce {{var}} con i valori in data (senza escape, il markdown è sicuro)
-function compileTemplate(template: string, data: Record<string, string>) {
-  return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => data[key] ?? "");
-}
-
-// Recupera il template email da Sanity, gestendo language come reference
-import { createClient } from "@sanity/client";
-import { apiVersion, dataset, projectId } from "../../../shared/sanity/env";
-
-const sanityClient = createClient({
-  projectId,
-  dataset,
-  apiVersion,
-  useCdn: false,
-});
-
-async function getEmailTemplate(lang: string) {
-  // Query GROQ: cerca il template con la lingua richiesta
-  const query = `*[_type == "emailTemplate" && language->code == $lang][0]{
-    subject_template,
-    body_template
-  }`;
-  const template = await sanityClient.fetch(query, { lang });
-  if (template) {
-    return {
-      subject: template.subject_template,
-      body: template.body_template,
-    };
-  }
-  // Fallback su italiano
-  const fallbackQuery = `*[_type == "emailTemplate" && language->code == "it"][0]{
-    subject_template,
-    body_template
-  }`;
-  const fallback = await sanityClient.fetch(fallbackQuery);
-  if (fallback) {
-    return {
-      subject: fallback.subject_template,
-      body: fallback.body_template
-    };
-  }
-  // Fallback statico se non trova nulla
-  return lang == "en" 
-    ? {
-      subject: "Contact request summary - Spreetzit",
-      body: `<div><h1>Spreetzit</h1><div><p>Dear {{name}} {{surname}}, <br>Thank you for contacting us. Below is a summary of your request: <br><br><strong>Subject:</strong> {{subject}} <br><strong>Message:</strong> {{description}} <br><br>We will get back to you as soon as possible. <br><br>Best regards, <br><br>The Spreetzit Team</p></div></div>`,
-    }
-    : {
-      subject: "Riepilogo richiesta di contatto - Spreetzit",
-      body: `<div><h1>Spreetzit</h1><div><p>Gentile {{name}} {{surname}}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> {{subject}} <br><strong>Messaggio:</strong> {{description}} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di Spreetzit</p></div></div>`,
-    };
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }
 
 const mailSenderAccount = {
@@ -94,7 +45,7 @@ export async function POST(request: Request) {
       name,
       surname,
       business_name,
-      request: subject,
+      request: requestType,
       description,
       lang = "it", // il front-end deve inviare la lingua, default "it"
       "h-captcha-response": hCaptchaToken
@@ -110,17 +61,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "hCaptcha configuration missing" }, { status: 500 });
     }
 
-    // Verifica hCaptcha
-    console.log('hCaptcha verification attempt:', {
-      hasToken: !!hCaptchaToken,
-      tokenLength: hCaptchaToken?.length,
-      tokenPreview: hCaptchaToken ? `${hCaptchaToken.substring(0, 20)}...` : 'none',
-      secret: hCaptchaSecret ? `${hCaptchaSecret.substring(0, 4)}...` : 'missing',
-      userAgent: request.headers.get('user-agent'),
-      origin: request.headers.get('origin'),
-      referer: request.headers.get('referer')
-    });
-
     const verifyResponse = await fetch("https://hcaptcha.com/siteverify", {
       method: "POST",
       headers: {
@@ -133,19 +73,12 @@ export async function POST(request: Request) {
       }),
     });
 
-    console.log('hCaptcha API response status:', verifyResponse.status);
-
     if (!verifyResponse.ok) {
       console.error('hCaptcha API error:', verifyResponse.statusText);
       return NextResponse.json({ success: false, error: "hCaptcha verification failed" }, { status: 400 });
     }
 
     const hCaptchaResult = await verifyResponse.json() as HCaptchaVerifyResponse;
-    console.log('hCaptcha result:', {
-      success: hCaptchaResult.success,
-      errorCodes: hCaptchaResult["error-codes"],
-      hostname: hCaptchaResult.hostname
-    });
 
     if (!hCaptchaResult.success) {
       console.error('hCaptcha validation failed:', hCaptchaResult["error-codes"]);
@@ -157,9 +90,22 @@ export async function POST(request: Request) {
     }
 
     // Validazione dei campi obbligatori
-    if ( !email || !name || !surname || !business_name || !subject || !description ) {
+    if ( !email || !name || !surname || !business_name || !requestType || !description ) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
+
+    // Validazione email
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ success: false, error: "Invalid email address" }, { status: 400 });
+    }
+
+    // Applica escape HTML ai campi che verranno usati nei template
+    const escapedName = escapeHtml(name);
+    const escapedSurname = escapeHtml(surname || '');
+    const escapedBusinessName = escapeHtml(business_name);
+    const escapedRequestType = escapeHtml(requestType);
+    const escapedDescription = escapeHtml(description);
+
 
     if (!mailSenderAccount.user || !mailSenderAccount.pass || !mailSenderAccount.email) {
       console.error("Email configuration missing:", {
@@ -186,34 +132,30 @@ export async function POST(request: Request) {
       },
     });
 
-    const mailData = {
+    const internalMailData = {
       from: mailSenderAccount.email,
       to: mailSenderAccount.email,
       subject: `SPREETZIT - Richiesta di contatto`,
       html: `
         <div>
           <h1>Nuova richiesta di contatto</h1>
-          <p><strong>Nome:</strong> ${name}</p>
-          <p><strong>Cognome:</strong> ${surname}</p>
+          <p><strong>Nome:</strong> ${escapedName}</p>
+          <p><strong>Cognome:</strong> ${escapedSurname}</p>
           <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Azienda:</strong> ${business_name}</p>
-          <p><strong>Oggetto della richiesta:</strong> ${subject}</p>
+          <p><strong>Azienda:</strong> ${escapedBusinessName}</p>
+          <p><strong>Oggetto della richiesta:</strong> ${escapedRequestType}</p>
           <p><strong>Descrizione:</strong></p>
-          <p>${description}</p>
+          <p>${escapedDescription}</p>
         </div>
       `,
+      text: `Nome: ${escapedName}\nCognome: ${escapedSurname}\nEmail: ${email}\nAzienda: ${escapedBusinessName}\nOggetto della richiesta: ${escapedRequestType}\nDescrizione:\n${escapedDescription}`
     };
 
-    await transporter.sendMail(mailData);
 
-
-    // Recupera il template localizzato dal DB (o fallback IT)
-    const template = await getEmailTemplate(lang);
-    // Compila il template con i dati
-    const subjectUser = compileTemplate(template.subject, { name, surname, subject, description });
-    const bodyUserMarkdown = compileTemplate(template.body, { name, surname, subject, description });
-    // Converte il markdown in HTML sicuro (await per garantire stringa)
-    const bodyUser = await marked.parse(bodyUserMarkdown);
+    const subjectUser = lang == "en" ? "Contact request summary - Spreetzit" : "Riepilogo richiesta di contatto - Spreetzit";
+    const bodyUser = lang == "en"
+      ? `<div><h1>Spreetzit</h1><div><p>Dear ${escapedName} ${escapedSurname}, <br>Thank you for contacting us. Below is a summary of your request: <br><br><strong>Subject:</strong> ${escapedRequestType} <br><strong>Message:</strong> ${escapedDescription} <br><br>We will get back to you as soon as possible. <br><br>Best regards, <br><br>The Spreetzit Team</p></div></div>`
+      : `<div><h1>Spreetzit</h1><div><p>Gentile ${escapedName} ${escapedSurname}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> ${escapedRequestType} <br><strong>Messaggio:</strong> ${escapedDescription} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di Spreetzit</p></div></div>`;
 
     const mailDataUser = {
       from: mailSenderAccount.email,
@@ -221,6 +163,9 @@ export async function POST(request: Request) {
       subject: subjectUser,
       html: bodyUser,
     };
+
+    // Invia entrambe le email   
+    await transporter.sendMail(internalMailData);
     await transporter.sendMail(mailDataUser);
 
     return NextResponse.json({ success: true });
