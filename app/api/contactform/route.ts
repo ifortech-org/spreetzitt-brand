@@ -47,29 +47,25 @@ async function getEmailTemplate(lang: string) {
   // Query GROQ: cerca il template con la lingua richiesta
   const query = `*[_type == "emailTemplate" && language->code == $lang][0]{
     subject_template,
-    body_template,
-    description
+    body_template
   }`;
   const template = await sanityClient.fetch(query, { lang });
   if (template) {
     return {
       subject: template.subject_template,
       body: template.body_template,
-      description: template.description,
     };
   }
   // Fallback su italiano
   const fallbackQuery = `*[_type == "emailTemplate" && language->code == "it"][0]{
     subject_template,
-    body_template,
-    description
+    body_template
   }`;
   const fallback = await sanityClient.fetch(fallbackQuery);
   if (fallback) {
     return {
       subject: fallback.subject_template,
-      body: fallback.body_template,
-      description: fallback.description,
+      body: fallback.body_template
     };
   }
   // Fallback statico se non trova nulla
@@ -77,12 +73,10 @@ async function getEmailTemplate(lang: string) {
     ? {
       subject: "Contact request summary - Spreetzit",
       body: `<div><h1>Spreetzit</h1><div><p>Dear {{name}} {{surname}}, <br>Thank you for contacting us. Below is a summary of your request: <br><br><strong>Subject:</strong> {{subject}} <br><strong>Message:</strong> {{description}} <br><br>We will get back to you as soon as possible. <br><br>Best regards, <br><br>The Spreetzit Team</p></div></div>`,
-      description: "Available variables: {{name}}, {{surname}}, {{subject}}, {{description}}. Use double curly braces to insert dynamic data.",
     }
     : {
       subject: "Riepilogo richiesta di contatto - Spreetzit",
       body: `<div><h1>Spreetzit</h1><div><p>Gentile {{name}} {{surname}}, <br>Grazie per averci contattato. Di seguito il riepilogo della tua richiesta: <br><br><strong>Oggetto:</strong> {{subject}} <br><strong>Messaggio:</strong> {{description}} <br><br>Ti contatteremo al più presto. <br><br>Cordiali saluti, <br><br>Il Team di Spreetzit</p></div></div>`,
-      description: "Variabili disponibili: {{name}}, {{surname}}, {{subject}}, {{description}}. Usare le doppie parentesi graffe per inserire i dati dinamici.",
     };
 }
 
@@ -95,7 +89,6 @@ const mailSenderAccount = {
 export async function POST(request: Request) {
   try {
 
-    // Recupera lingua dalla richiesta, default "it"
     const {
       email,
       name,
